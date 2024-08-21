@@ -13,52 +13,49 @@ import styles from '../styles/ProfileScreenStyles'; // Import global styles
 
 const ProfileScreen = ({navigation}) => {
   const [profileImage, setProfileImage] = useState(null);
-  const [media, setMedia] = useState([
-    // Placeholder data for media (images and videos)
-    {id: '1', uri: 'https://via.placeholder.com/150', type: 'image'},
-    {id: '2', uri: 'https://via.placeholder.com/150', type: 'image'},
-    {id: '3', uri: 'https://via.placeholder.com/150', type: 'image'},
-    {id: '4', uri: 'https://www.w3schools.com/html/mov_bbb.mp4', type: 'video'},
-    {id: '5', uri: 'https://via.placeholder.com/150', type: 'image'},
-    {id: '6', uri: 'https://www.w3schools.com/html/mov_bbb.mp4', type: 'video'},
-  ]);
+  const [media, setMedia] = useState([]);
 
-  const selectProfileImage = () => {
+  const selectMedia = () => {
     const options = {
-      mediaType: 'photo',
-      maxWidth: 300,
-      maxHeight: 300,
+      mediaType: 'mixed', // This allows both images and videos
       quality: 1,
     };
 
     launchImageLibrary(options, response => {
       if (response.didCancel) {
-        console.log('User cancelled image picker');
+        console.log('User cancelled media picker');
       } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
+        console.log('MediaPicker Error: ', response.errorMessage);
       } else {
-        const source = {uri: response.assets[0].uri};
-        setProfileImage(source);
+        const selectedMedia = response.assets.map(asset => ({
+          uri: asset.uri,
+          type: asset.type,
+        }));
+        setMedia([...media, ...selectedMedia]); // Append new media to the existing array
       }
     });
   };
 
   const renderItem = ({item}) => {
-    if (item.type === 'image') {
-      return (
-        <View style={styles.gridItem}>
-          <Image source={{uri: item.uri}} style={styles.gridImage} />
-        </View>
-      );
-    } else if (item.type === 'video') {
+    if (item.type.startsWith('video')) {
       return (
         <View style={styles.gridItem}>
           <Video
             source={{uri: item.uri}}
             style={styles.gridImage}
-            resizeMode="cover"
+            resizeMode="cover" // This is fine for videos to maintain aspect ratio
             repeat
             muted
+          />
+        </View>
+      );
+    } else if (item.type.startsWith('image')) {
+      return (
+        <View style={styles.gridItem}>
+          <Image
+            source={{uri: item.uri}}
+            style={styles.gridImage}
+            resizeMode="cover" // Optional, use if you want images to be resized similarly
           />
         </View>
       );
@@ -92,18 +89,24 @@ const ProfileScreen = ({navigation}) => {
       </TouchableOpacity>
 
       <View style={styles.profileContainer}>
-        <TouchableOpacity onPress={selectProfileImage}>
+        <TouchableOpacity onPress={selectMedia}>
           <Image source={profileImage} style={styles.profileImage} />
         </TouchableOpacity>
         <Text style={styles.title}>Profile Image{'\n'}goes here</Text>
       </View>
 
+      <View style={styles.uploadContainer}>
+        <TouchableOpacity onPress={selectMedia} style={styles.uploadButton}>
+          <Text style={styles.uploadButtonText}>Upload Media</Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
-        data={media}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        numColumns={3}
-        contentContainerStyle={styles.grid}
+        data={media} // The media state holds all selected images and videos
+        renderItem={renderItem} // Render each media item
+        keyExtractor={(item, index) => index.toString()} // Unique key for each item
+        numColumns={3} // Display in a grid with 3 columns
+        contentContainerStyle={styles.grid} // Style for the grid container
       />
     </SafeAreaView>
   );

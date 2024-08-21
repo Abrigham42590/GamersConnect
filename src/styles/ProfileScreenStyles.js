@@ -7,6 +7,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  uploadContainer: {
+    flex: -5,
+    backgroundColor: '#f8f8f8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   title: {
     fontSize: 32,
     fontWeight: 'bold',
@@ -81,6 +89,22 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+
+  // Add this to your styles
+  uploadButton: {
+    marginVertical: 20, // Space between other elements
+    padding: 10, // Padding inside the button
+    top: -65,
+    backgroundColor: '#28a745', // A green color for the upload button
+    borderRadius: 5, // Rounded corners
+    alignItems: 'center', // Center the text inside the button
+  },
+
+  uploadButtonText: {
+    color: '#fff', // White text color
+    fontWeight: 'bold', // Bold text
+  },
+
   friendsListButton: {
     position: 'absolute',
     top: 250,
