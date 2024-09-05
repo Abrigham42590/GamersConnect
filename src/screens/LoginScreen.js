@@ -8,6 +8,7 @@ import {
   Button,
   Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles/GlobalStyles';
 
 function LoginScreen({navigation}) {
@@ -15,7 +16,7 @@ function LoginScreen({navigation}) {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({username: '', password: ''});
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!username || !password) {
       setErrors({
         username: username ? '' : 'Username is required',
@@ -23,10 +24,41 @@ function LoginScreen({navigation}) {
       });
       return;
     }
-    console.log('Logging in:', username);
-    // Add your login logic here, possibly including API calls
-    Alert.alert('Login Successful', `Welcome, ${username}!`);
-    navigation.navigate('Profile');
+
+    try {
+      // Send login credentials to the backend
+      const response = await fetch('http://10.0.2.2:3000/users/loginUser', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({username, password}), // Sending login data
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Ensure userId and token are received from the backend
+        const {userId, token} = data;
+
+        // Store the userId and token in AsyncStorage
+        await AsyncStorage.setItem('userId', userId.toString()); // Convert userId to string for storage
+        await AsyncStorage.setItem('authToken', token);
+
+        // Show a success message
+        Alert.alert('Login Successful', `Welcome, ${username}!`);
+
+        // Navigate to the Profile screen
+        navigation.navigate('Profile');
+      } else {
+        // Handle login failure (e.g., incorrect username/password)
+        console.error('Login failed:', data);
+        Alert.alert('Login Failed', data.message || 'Invalid credentials');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      Alert.alert('Login Error', 'An error occurred. Please try again.');
+    }
   };
 
   return (
@@ -63,12 +95,21 @@ function LoginScreen({navigation}) {
         ) : null}
 
         <Button title="Login" onPress={handleLogin} />
+
         <Text
           style={styles.linkText}
           onPress={() =>
             Alert.alert('Reset Username', 'Link to reset username')
           }>
           Forgot Username?
+        </Text>
+
+        {/* Add "Create Account" link to navigate to RegisterScreen */}
+        <Text
+          style={styles.linkText}
+          onPress={() => navigation.navigate('Register')} // Navigates to RegisterScreen
+        >
+          Create Account
         </Text>
       </ScrollView>
     </SafeAreaView>

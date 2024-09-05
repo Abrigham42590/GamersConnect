@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   SafeAreaView,
   View,
@@ -6,22 +6,58 @@ import {
   Image,
   FlatList,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import {launchImageLibrary} from 'react-native-image-picker';
 import Video from 'react-native-video';
-import styles from '../styles/ProfileScreenStyles'; // Import global styles
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import styles from '../styles/ProfileScreenStyles';
 
 const ProfileScreen = ({navigation}) => {
   const [profileImage, setProfileImage] = useState(null);
   const [media, setMedia] = useState([]);
 
+  // Fetch user's media on component mount
+  useEffect(() => {
+    const fetchUserMedia = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('userId');
+        const token = await AsyncStorage.getItem('authToken');
+
+        const response = await fetch(
+          `http://10.0.2.2:3000/users/${userId}/media`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setMedia(data.media); // Assuming the backend returns an array of media
+        } else {
+          const errorText = await response.text();
+          console.error('Failed to fetch media:', errorText);
+          Alert.alert('Error', 'Failed to load media.');
+        }
+      } catch (error) {
+        console.error('Error fetching media:', error);
+        Alert.alert('Error', 'An error occurred while fetching media.');
+      }
+    };
+
+    fetchUserMedia();
+  }, []);
+
+  // Function to select and upload media
   const selectMedia = () => {
     const options = {
-      mediaType: 'mixed', // This allows both images and videos
+      mediaType: 'mixed',
       quality: 1,
     };
 
-    launchImageLibrary(options, response => {
+    launchImageLibrary(options, async response => {
       if (response.didCancel) {
         console.log('User cancelled media picker');
       } else if (response.errorCode) {
@@ -30,8 +66,45 @@ const ProfileScreen = ({navigation}) => {
         const selectedMedia = response.assets.map(asset => ({
           uri: asset.uri,
           type: asset.type,
+          fileName: asset.fileName || asset.uri.split('/').pop(),
         }));
-        setMedia([...media, ...selectedMedia]); // Append new media to the existing array
+
+        setMedia([...media, ...selectedMedia]);
+
+        // Upload each selected media to the backend
+        for (let mediaItem of selectedMedia) {
+          const formData = new FormData();
+          formData.append('mediaFile', {
+            uri: mediaItem.uri,
+            name: mediaItem.fileName,
+            type: mediaItem.type,
+          });
+
+          try {
+            const userId = await AsyncStorage.getItem('userId'); // Get userId from AsyncStorage
+            const token = await AsyncStorage.getItem('authToken');
+
+            const res = await fetch('http://10.0.2.2:3000/users/addUserMedia', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              body: formData,
+            });
+
+            if (!res.ok) {
+              const text = await res.text();
+              console.error('Unexpected response:', text);
+              throw new Error(`Server responded with status ${res.status}`);
+            }
+
+            const data = await res.json();
+            console.log('Upload successful:', data);
+          } catch (err) {
+            console.error('Upload error:', err);
+            Alert.alert('Upload Error', 'Failed to upload media.');
+          }
+        }
       }
     });
   };
@@ -43,7 +116,7 @@ const ProfileScreen = ({navigation}) => {
           <Video
             source={{uri: item.uri}}
             style={styles.gridImage}
-            resizeMode="cover" // This is fine for videos to maintain aspect ratio
+            resizeMode="cover"
             repeat
             muted
           />
@@ -55,7 +128,7 @@ const ProfileScreen = ({navigation}) => {
           <Image
             source={{uri: item.uri}}
             style={styles.gridImage}
-            resizeMode="cover" // Optional, use if you want images to be resized similarly
+            resizeMode="cover"
           />
         </View>
       );
@@ -102,11 +175,11 @@ const ProfileScreen = ({navigation}) => {
       </View>
 
       <FlatList
-        data={media} // The media state holds all selected images and videos
-        renderItem={renderItem} // Render each media item
-        keyExtractor={(item, index) => index.toString()} // Unique key for each item
-        numColumns={3} // Display in a grid with 3 columns
-        contentContainerStyle={styles.grid} // Style for the grid container
+        data={media}
+        renderItem={renderItem}
+        keyExtractor={(item, index) => index.toString()}
+        numColumns={3}
+        contentContainerStyle={styles.grid}
       />
     </SafeAreaView>
   );

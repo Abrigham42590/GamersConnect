@@ -8,6 +8,7 @@ import ReviewListScreen from './screens/ReviewListScreen';
 import CalendarScreen from './screens/CalendarScreen';
 import FriendsListScreen from './screens/FriendsListScreen';
 import StreamersListScreen from './screens/StreamersListScreen';
+import RegisterScreen from './screens/RegisterScreen';
 // import other screens here as needed
 
 const Stack = createStackNavigator();
@@ -17,6 +18,7 @@ function App() {
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Login">
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="ReviewList" component={ReviewListScreen} />
         <Stack.Screen name="Calendar" component={CalendarScreen} />
